@@ -1,0 +1,29 @@
+{
+  "name": "<%= config.moduleName %>",
+  "version": "0.1.0",
+  "description": "<%= config.description %>",
+  "keywords": "<%= config.keywords %>",
+  "authors": [
+    {
+      "name": "<%= config.author.name %>",
+      "email": "<%= config.author.email %>"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "<%= config.gitUrl %>"
+  },
+  "license": "<%= config.license %>",
+  "main": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "normalize-css": "^7.0.0"
+  }
+}

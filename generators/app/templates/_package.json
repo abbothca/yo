@@ -1,0 +1,17 @@
+{
+    "name": "<%= config.moduleName %>",
+    "version": "0.1.0",
+    "description": "<%= config.description %>",
+    "main": "",
+    "scripts": {},
+    "author": "<%= config.author.name %> <%= config.author.email %>",
+    "license": "<%= config.license %>",
+    "dependencies": {
+        "browser-sync": "^2.18.12",
+        "gulp": "^3.9.1",
+        "gulp-sass": "^3.1.0",
+        "gulp-sourcemaps": "^2.6.0",
+        "gulp-uglify": "^3.0.0",
+        "gulp-watch": "^4.3.11"
+    }
+}
