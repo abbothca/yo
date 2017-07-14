@@ -108,6 +108,12 @@ module.exports = class extends Generator {
                         default: 'Y'
                     },
                     {
+                        type: 'confirm',
+                        name: 'fontawesome',
+                        message: 'Would you like to set up Font Awesome',
+                        default: 'Y'
+                    },
+                    {
                         type: 'list',
                         name: 'cssframework',
                         message: 'Would you like to use some CSS framework?',
@@ -131,6 +137,7 @@ module.exports = class extends Generator {
                         },
 
                         jquery: props.jquery,
+                        fontawesome: props.fontawesome,
                         cssframework: props.cssframework
                     };
                 });
@@ -155,23 +162,11 @@ module.exports = class extends Generator {
         });
         if (this.props.jquery)
             this.bowerInstall(['jquery'], {'save-dev': true});
-        
-        if (this.props.cssframework !== 'no'){
-            this.bowerInstall([this.props.cssframework], {'save-dev': true});
+
+        if (this.props.fontawesome) {
+            this.bowerInstall(['components-font-awesome'], {'save-dev': true});
         }
     }
-
-// Sync actioning
-//    myAction() {
-//        this.log('Something has gone wrong!');
-//    }
-
-//    scaffoldFolders() {
-//        this.mkdir("app");
-//        this.mkdir("style");
-//        this.mkdir("style/css");
-//        this.mkdir("style/libs");
-//    }
 
     writing() {
         this.fs.copy(
@@ -183,6 +178,14 @@ module.exports = class extends Generator {
                 this.destinationPath('public/index.html'),
                 {title: 'Templating with Yeoman'}
         );
+        this.fs.copy(
+                this.templatePath('scss/'),
+                this.destinationPath('public/assets/scss/')
+                );
+        this.fs.copy(
+                this.templatePath('js/'),
+                this.destinationPath('public/assets/js/')
+                );
         this.fs.copyTpl(
                 this.templatePath('_bower.json'),
                 this.destinationPath('./bower.json'),
