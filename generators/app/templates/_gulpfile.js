@@ -1,172 +1,305 @@
-var gulp = require('gulp');
-//var gutil = require('gulp-util');
-var sass = require('gulp-sass');
-var watch = require('gulp-watch');
-//var shell = require('gulp-shell');
-//var notify = require('gulp-notify');
-var browserSync = require('browser-sync').create();
-var sourcemaps = require('gulp-sourcemaps');
-var uglify = require('gulp-uglify');
-//var fs = require("fs");
-//var runSequence = require('run-sequence');
-var config = require("./example.config");
+const gulp = require('gulp');
+const sass = require('gulp-sass');
+const watch = require('gulp-watch');
+const notify = require('gulp-notify');
+const browserSync = require('browser-sync').create();
+const sourcemaps = require('gulp-sourcemaps');
+const uglify = require('gulp-uglify');
+const fs = require("fs");
+const inject = require('gulp-inject');
+const data = require('gulp-data');
+const imagemin = require('gulp-imagemin');
+const fontgen = require('gulp-fontgen');
+const GoogleFontlist = require('google-font-installer');
+const fontList = new GoogleFontlist("Your_Google_Font_API_Key");
+
+var path = {
+    css: {
+        'dev': 'dev/assets/scss/*.scss',
+        'watch': 'dev/assets/scss/**/*.scss',
+        'prod': 'public/assets/css/',
+        'inject': 'public/assets/css/*.css'
+    },
+    js: {
+        'dev': 'dev/assets/js/**/*.js',
+        'watch': 'dev/assets/js/**/*.js',
+        'prod': 'public/assets/js/',
+        'inject': 'public/assets/js/*.js'
+    },
+    bower: {
+        source: 'bower_components/**/*.*',
+        lib: 'public/assets/library',
+        css: 'public/assets/library/*.css',
+        scss: 'dev/assets/library/',
+        js: 'public/assets/library/*.js'
+    },
+    html: {
+        source: './dev/html/*.html',
+        prod: './public/'
+    },
+    fonts: {
+        dev: 'dev/assets/fonts/'
+    },
+    image: {
+        dev: 'dev/assets/images/**/*.*',
+        prod: 'public/assets/images/'
+    }
+};
+
+//------------------------------------------------------------------------------
+//----------------------BOWER-------------------------------------------------
+//------------------------------------------------------------------------------
 
 /**
- * If config.js exists, load that config for overriding certain values below.
+ * This task generates folder 'library' for bower_components.
  */
-function loadConfig() {
-  if (fs.existsSync(__dirname + "/./config.js")) {
-    config = {};
-    config = require("./config");
-  }
+gulp.task('bower_main_file', function () {
+    gulp.src("./bower_components/**/bower.json")
+            .pipe(data(function (file) {
+                var main = JSON.parse(String(file.contents)).main;
+                var name = JSON.parse(String(file.contents)).name;
+                if (typeof (main) === 'object') {
+                    for (var i = 0; i < main.length; i++) {
+                        var main_i = "bower_components/" + name + "/" + main[i];
+                        if (main[i].indexOf('.scss') !== -1) {
+                            gulp.src(main_i)
+                                    .pipe(gulp.dest(path.bower.lib));
+                        } else {
+                            gulp.src(main_i)
+                                    .pipe(gulp.dest(path.bower.scss));
+                        }
+                    }
+                } else {
+                    main = "bower_components/" + name + "/" + main;
+                    gulp.src(main)
+                            .pipe(gulp.dest(path.bower.lib));
+                }
+            }));
+});
 
-  return config;
-}
+//------------------------------------------------------------------------------
+//----------------------HTML---------------------------------------------------
+//------------------------------------------------------------------------------
 
-loadConfig();
+/**
+ * This task inject vendors and custom js/css files to index.html.
+ */
+gulp.task('inject', ['bower_main_file'], function () {
+    return gulp.src(path.html.source)
+            //vendors
+            .pipe(inject(gulp.src(path.bower.css, {read: false}),
+                    {
+                        starttag: '<!-- inject:css_lib -->',
+                        //relative: true,
+                        transform: function (filepath, file, i, length) {
+                            return '<link rel="stylesheet" class="blue" href="' + filepath.replace("public/", "") + '">';
+                        }
+                    }))
+            .pipe(inject(gulp.src(path.bower.js, {read: false}),
+                    {
+                        starttag: '<!-- inject:js_lib -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<script src="' + filepath.replace("public/", "") + '"></script>';
+                        }
+                    }
+            ))
+            //custom files
+            .pipe(inject(gulp.src(path.css.inject, {read: false}),
+                    {
+                        starttag: '<!-- inject:css_custom -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<link rel="stylesheet" class="blue" href="' + filepath.replace("public/", "") + '">';
+                        }
+                    }
+            ))
+            .pipe(inject(gulp.src(path.js.inject, {read: false}),
+                    {
+                        starttag: '<!-- inject:js_custom -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<script src="' + filepath.replace("public/", "") + '"></script>';
+                        }
+                    }
+            ))
+            .pipe(gulp.dest(path.html.prod));
+});
 
-var bowerFiles = require('main-bower-files'),
-    inject = require('gulp-inject'),
-    stylus = require('gulp-stylus'),
-    es = require('event-stream');
- 
-var cssFiles = gulp.src('./src/**/*.styl')
-  .pipe(stylus())
-  .pipe(gulp.dest('./build'));
- 
-gulp.src('./src/index.html')
-  .pipe(inject(gulp.src(bowerFiles(), {read: false}), {name: 'bower'}))
-  .pipe(inject(es.merge(
-    cssFiles,
-    gulp.src('./src/app/**/*.js', {read: false})
-  )))
-  .pipe(gulp.dest('./build'));
 
-
+//------------------------------------------------------------------------------
+//----------------------CSS-----------------------------------------------------
+//------------------------------------------------------------------------------
 /**
  * This task generates CSS from all SCSS files and compresses them down.
  */
 gulp.task('sass', function () {
-  return gulp.src('./scss/**/*.scss')
-          .pipe(sourcemaps.init())
-          .pipe(sass({
-            noCache: true,
-            outputStyle: "compressed",
-            lineNumbers: false,
-            loadPath: './css/*',
-            sourceMap: true
-          })).on('error', function (error) {
-    gutil.log(error);
-    this.emit('end');
-  })
-          .pipe(sourcemaps.write('./maps'))
-          .pipe(gulp.dest('./css'))
-          .pipe(notify({
-            title: "SASS Compiled",
-            message: "All SASS files have been recompiled to CSS.",
-            onLast: true
-          }));
+    return gulp.src(path.css.dev)
+            .pipe(sourcemaps.init())
+            .pipe(sass({
+                noCache: true,
+                outputStyle: "compressed",
+                lineNumbers: false
+            })).on('error',
+            function (error) {
+                gutil.log(error);
+                this.emit('end');
+            })
+            .pipe(gulp.dest(path.css.prod))
+            .pipe(notify({
+                title: "SASS Compiled",
+                message: "All SASS files have been recompiled to CSS.",
+                onLast: true
+            }));
 });
 
-
+//------------------------------------------------------------------------------
+//----------------------JS------------------------------------------------------
+//------------------------------------------------------------------------------
 /**
  * This task minifies javascript in the js/js-src folder and places them in the js directory.
  */
-gulp.task('compress', function () {  
-  return gulp.src('./js/js-src/script.js')
-          .on('error', console.log)
-          .pipe(sourcemaps.init())
-          .pipe(uglify())
-          .pipe(sourcemaps.write('./maps'))
-          .pipe(gulp.dest('./js'))
-          .pipe(notify({
-            title: "JS Minified",
-            message: "All JS files in the theme have been minified.",
-            onLast: true
-          }));
+gulp.task('compress', function () {
+    return gulp.src(path.js.dev)
+            .on('error', console.log)
+            .pipe(sourcemaps.init())
+            .pipe(uglify())
+            .pipe(sourcemaps.write('./map'))
+            .pipe(gulp.dest(path.js.prod))
+            .pipe(notify({
+                title: "JS Minified",
+                message: "All JS files in the theme have been minified.",
+                onLast: true
+            }));
 });
+
+
+//------------------------------------------------------------------------------
+//----------------------FONTS---------------------------------------------------
+//------------------------------------------------------------------------------
+var fontsForDownloaded = [
+    {
+        family: "Roboto",
+        variant: ['300', '300italic']
+    },
+    {
+        family: "Open Sans",
+        variant: ['300', '400', '600']
+    },
+    {
+        family: "Lato",
+        variant: ['300', '700']
+    }
+];
 
 /**
- * Defines a task that triggers a Drush cache clear (css-js).
+ * This task load the GoogleFonts.
  */
-gulp.task('drush:cc', function () {
-  if (!config.drush.enabled) {
-    return;
-  }
+gulp.task('fonts_load', function () {
+    fontList.on('success', function () {
+        for (var i = 0; i < fontsForDownloaded.length; i++) {
 
-  return gulp.src('', {read: false})
-          .pipe(shell([
-            config.drush.alias.css_js
-          ]))
-          .pipe(notify({
-            title: "Caches cleared",
-            message: "Drupal CSS/JS caches cleared.",
-            onLast: true
-          }));
+            this.searchFontByName(fontsForDownloaded[i].family, function (err, filteredList) {
+                if (err)
+                    throw err;
+                filteredList.getFirst().saveAt(fontsForDownloaded[i].variant, path.fonts.dev+"/"+fontsForDownloaded[i].family, function (err, result) {
+                    if (err)
+                        throw err;
+                    result.forEach(function (el, index) {
+                        console.log('Variant %s of %s downloaded in %s', el.variant, el.family, el.path);
+                    });
+                });
+            });
+        }
+        ;
+    });
+
+    fontList.on('error', function (err) {
+        throw err;
+    });
 });
-
 /**
- * Defines a task that triggers a Drush cache rebuild.
+ * This task generete the full stack for each font.
  */
-gulp.task('drush:cr', function () {
-  if (!config.drush.enabled) {
-    return;
-  }
-
-  return gulp.src('', {read: false})
-          .pipe(shell([
-            config.drush.alias.cr
-          ]))
-          .pipe(notify({
-            title: "Cache rebuilt",
-            message: "Drupal cache rebuilt.",
-            onLast: true
-          }));
+gulp.task('fontgen', function() {
+  return gulp.src(path.fonts.dev + "/**/*.{ttf,otf}")
+    .pipe(fontgen({
+      dest: path.fonts.prod
+    }));
 });
 
+
+//------------------------------------------------------------------------------
+//----------------------IMAGES--------------------------------------------------
+//------------------------------------------------------------------------------
+gulp.task('image_min', () =>
+    gulp.src(path.image.dev)
+        .pipe(imagemin())
+        .pipe(gulp.dest(path.image.prod))
+);
+
+
+//------------------------------------------------------------------------------
+//----------------------DEFAULT-------------------------------------------------
+//------------------------------------------------------------------------------
 /**
  * Define a task to spawn Browser Sync.
- * Options are defaulted, but can be overridden within your config.js file.
  */
 gulp.task('browser-sync', function () {
-  browserSync.init({
-    files: ['css/**/*.css', 'js/*.js'],
-    port: config.browserSync.port,
-    proxy: config.browserSync.hostname,
-    open: config.browserSync.openAutomatically,
-    reloadDelay: config.browserSync.reloadDelay,
-    injectChanges: config.browserSync.injectChanges
-  });
+    browserSync.init({
+        files: [path.css.prod, path.js.prod],
+        server: {
+            baseDir: "./public"
+        }
+    });
 });
 
-/**
- * Define a task to be called to instruct browser sync to reload.
- */
 gulp.task('reload', function () {
-  browserSync.reload();
+    browserSync.reload();
 });
 
 /**
- * Combined tasks that are run synchronously specifically for twig template changes.
+ * Set up the watcher.
  */
-gulp.task('flush', function () {
-  runSequence('drush:cr', 'reload');
+gulp.task('watch', ['sass', 'compress', 'inject'], function () {
+    gulp.watch([path.css.watch], ['reload', 'sass']);
+    gulp.watch([path.js.watch], ['reload', 'compress']);
+    gulp.watch([path.bower.source, path.css.prod, path.js.prod, path.html.source], ['reload', 'inject']);
+    //  gulp.watch([path.js.watch], ['compress']);
 });
 
-/**
- * Defines the watcher task.
- */
-gulp.task('watch', function () {
-  // watch scss for changes and clear drupal theme cache on change
-  gulp.watch(['scss/**/*.scss'], ['sass', 'drush:cc']);
-
-  // watch js for changes and clear drupal theme cache on change
-  gulp.watch(['js/js-src/**/*.js'], ['compress', 'drush:cc']);
-
-  // If user has specified an override, rebuild Drupal cache
-  if (!config.twig.useCache) {
-    gulp.watch(['templates/**/*.html.twig'], ['flush']);
-  }
+gulp.task('default', ['browser-sync', 'watch', 'inject', 'sass', 'compress', 'bower_main_file'], function () {
+    return gulp.src(path.html.source)
+            //vendors
+            .pipe(inject(gulp.src(path.bower.css, {read: false}),
+                    {
+                        starttag: '<!-- inject:css_lib -->',
+                        //relative: true,
+                        transform: function (filepath, file, i, length) {
+                            return '<link rel="stylesheet" class="blue" href="' + filepath.replace("public/", "") + '">';
+                        }
+                    }))
+            .pipe(inject(gulp.src(path.bower.js, {read: false}),
+                    {
+                        starttag: '<!-- inject:js_lib -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<script src="' + filepath.replace("public/", "") + '"></script>';
+                        }
+                    }
+            ))
+            //custom files
+            .pipe(inject(gulp.src(path.css.inject, {read: false}),
+                    {
+                        starttag: '<!-- inject:css_custom -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<link rel="stylesheet" class="blue" href="' + filepath.replace("public/", "") + '">';
+                        }
+                    }
+            ))
+            .pipe(inject(gulp.src(path.js.inject, {read: false}),
+                    {
+                        starttag: '<!-- inject:js_custom -->',
+                        transform: function (filepath, file, i, length) {
+                            return '<script src="' + filepath.replace("public/", "") + '"></script>';
+                        }
+                    }
+            ))
+            .pipe(gulp.dest(path.html.prod));
 });
-
-gulp.task('default', ['watch', 'browser-sync']);

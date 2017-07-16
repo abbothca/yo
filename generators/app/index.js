@@ -2,7 +2,6 @@
 const Generator = require('yeoman-generator');
 const chalk = require('chalk');
 const yosay = require('yosay');
-
 module.exports = class extends Generator {
 
     constructor(args, opts) {
@@ -12,7 +11,7 @@ module.exports = class extends Generator {
         // required Boolean whether it is required
         // type String, Number, Array (can also be a custom function receiving the raw string value and parsing it)
         // default Default value for this argument
-        this.argument('appname', {type: String, required: true});
+        this.argument('appname', {type: String, required: false});
         // And you can then access it later; e.g.
         this.log(this.options.appname);
     }
@@ -117,12 +116,13 @@ module.exports = class extends Generator {
                         type: 'list',
                         name: 'cssframework',
                         message: 'Would you like to use some CSS framework?',
-                        choices: ["no", "bootstrap", "foundation", "neato"],
+                        choices: ["no", "bootstrap-sass-official", "bootstrap-css"],
                         default: "no"
                     }
                 ]
                 )
                 .then((props) => {
+
                     this.props = {
 
                         moduleName: props.moduleName,
@@ -130,12 +130,10 @@ module.exports = class extends Generator {
                         gitUrl: props.gitUrl,
                         keywords: props.keywords,
                         license: props.license,
-
                         author: {
                             name: props.author,
                             email: props.email
                         },
-
                         jquery: props.jquery,
                         fontawesome: props.fontawesome,
                         cssframework: props.cssframework
@@ -162,9 +160,12 @@ module.exports = class extends Generator {
         });
         if (this.props.jquery)
             this.bowerInstall(['jquery'], {'save-dev': true});
-
         if (this.props.fontawesome) {
             this.bowerInstall(['components-font-awesome'], {'save-dev': true});
+        }
+
+        if (this.props.cssframework !== "no") {
+            this.bowerInstall([this.props.cssframework], {'save-dev': true});
         }
     }
 
@@ -175,16 +176,24 @@ module.exports = class extends Generator {
                 );
         this.fs.copyTpl(
                 this.templatePath('index.html'),
-                this.destinationPath('public/index.html'),
-                {title: 'Templating with Yeoman'}
+                this.destinationPath('./dev/html/index.html'),
+                {title: this.props.moduleName}
         );
         this.fs.copy(
                 this.templatePath('scss/'),
-                this.destinationPath('public/assets/scss/')
+                this.destinationPath('./dev/assets/scss/')
                 );
         this.fs.copy(
                 this.templatePath('js/'),
-                this.destinationPath('public/assets/js/')
+                this.destinationPath('./dev/assets/js/')
+                );
+        this.fs.copy(
+                this.templatePath('fonts/'),
+                this.destinationPath('./dev/assets/fonts/')
+                );
+        this.fs.copy(
+                this.templatePath('images/'),
+                this.destinationPath('./dev/assets/images/')
                 );
         this.fs.copyTpl(
                 this.templatePath('_bower.json'),
@@ -198,7 +207,8 @@ module.exports = class extends Generator {
         );
         this.fs.copyTpl(
                 this.templatePath('_gulpfile.js'),
-                this.destinationPath('./gulpfile.js')
+                this.destinationPath('./gulpfile.js'),
+                 {config: this.props}
                 );
     }
 
