@@ -13,7 +13,12 @@
   ],
   "main": "generators/index.js",
   "keywords": [
-    "",
+    "gulp",
+    "bower inject",
+    "scss",
+    "load fonts",
+    "generating of browser fonts",
+    "imagemin",
     "yeoman-generator"
   ],
   "devDependencies": {
