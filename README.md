@@ -22,8 +22,8 @@ Then start compiling your project:
 gulp
 ```
 
-For loading Google fonts to use gulp task 'fonts_load' from the object **fontsForDownloaded** 
-(just get your API key on https://developers.google.com/fonts/docs/developer_api and add it in the variable 'fontList'):
+For loading Google fonts to use gulp task **fonts_load** from the object **fontsForDownloaded** 
+(just get your API key on [Google Fonts Developer API](https://developers.google.com/fonts/docs/developer_api) and add it in the variable **fontList**):
 
 ```bash
 var fontsForDownloaded = [
