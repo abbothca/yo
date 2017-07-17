@@ -16,7 +16,9 @@ Then generate your new project:
 yo first
 ```
 
-Then start compiling your project:
+## How to use
+
+To start compiling your project:
 
 ```bash
 gulp
@@ -61,7 +63,7 @@ gulp fontgen
 
 ## License
 
- © [Liuba]()
+ © [Liuba Khomych](https://www.facebook.com/abbothca)
 
 
 [npm-image]: https://badge.fury.io/js/generator-first.svg

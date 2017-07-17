@@ -47,5 +47,5 @@
     }
   },
   "repository": "git@github.com:abbothca/generator-first.git",
-  "private": true
+  "private": false
 }
