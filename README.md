@@ -16,6 +16,42 @@ Then generate your new project:
 yo first
 ```
 
+Then start compiling your project:
+
+```bash
+gulp
+```
+
+For loading Google fonts to use gulp task 'fonts_load' from the object 'fontsForDownloaded' 
+(just get your API key on https://developers.google.com/fonts/docs/developer_api and add it in the variable 'fontList'):
+
+```bash
+var fontsForDownloaded = [
+    {
+        family: "Roboto",
+        variant: ['300', '300italic']
+    },
+    {
+        family: "Open Sans",
+        variant: ['300', '400', '600']
+    },
+    {
+        family: "Lato",
+        variant: ['300', '700']
+    }
+];
+```
+
+```bash
+gulp fonts_load
+```
+
+For generating of browser fonts and css from ttf or otf files, just run:
+
+```bash
+gulp fontgen
+```
+
 ## Getting To Know Yeoman
 
  * Yeoman has a heart of gold.
