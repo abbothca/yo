@@ -51,6 +51,6 @@
       "node": true
     }
   },
-  "repository": "git@github.com:abbothca/generator-first.git",
+  "repository": "git@github.com:abbothca/yo.git",
   "private": false
 }
